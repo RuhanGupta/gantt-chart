@@ -148,9 +148,12 @@ export const useAppStore = create<Store>()(
           id: p.id ?? p._id,
         }));
 
+        // ✅ MINIMAL FIX: normalize nulls coming from Mongo
         const tasks: Task[] = (data.tasks ?? []).map((t) => ({
           ...t,
           id: t.id ?? t._id,
+          description: t.description ?? undefined, // null -> undefined
+          wbs: t.wbs ?? undefined, // null -> undefined (safety)
         }));
 
         const parsed = AppStateSchema.safeParse({ projects, tasks });
@@ -242,13 +245,13 @@ export const useAppStore = create<Store>()(
           id,
           projectId,
           title: partial.title,
-          description: partial.description,
+          description: partial.description ?? undefined, // ✅ avoid null
           plannedStart,
           plannedEnd,
           progress,
           status: progress >= 100 ? "done" : progress > 0 ? "doing" : "todo",
           pinnedToToday: partial.pinnedToToday ?? false,
-          wbs: partial.wbs,
+          wbs: partial.wbs ?? undefined, // ✅ avoid null
           order: partial.order ?? nextOrder,
         };
 
@@ -274,6 +277,10 @@ export const useAppStore = create<Store>()(
               merged.progress = p;
               merged.status = p >= 100 ? "done" : p > 0 ? "doing" : "todo";
             }
+
+            // ✅ avoid null drifting into store
+            if ((merged as any).description === null) merged.description = undefined;
+            if ((merged as any).wbs === null) merged.wbs = undefined;
 
             return merged;
           }),
