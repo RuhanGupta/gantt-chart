@@ -1,8 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { tasksCol } from "@/lib/dbCollections";
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
-  const id = params.id;
+type Ctx = { params: Promise<{ id: string }> };
+
+export async function PATCH(req: NextRequest, { params }: Ctx) {
+  const { id } = await params;
   const body = await req.json();
 
   const allowed = [
@@ -17,7 +19,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     "order",
   ] as const;
 
-  const update: any = {};
+  const update: Record<string, unknown> = {};
   for (const k of allowed) if (body[k] !== undefined) update[k] = body[k];
 
   const col = await tasksCol();
@@ -27,8 +29,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   return NextResponse.json(updated);
 }
 
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
-  const id = params.id;
+export async function DELETE(_req: NextRequest, { params }: Ctx) {
+  const { id } = await params;
   const col = await tasksCol();
   await col.deleteOne({ _id: id });
   return NextResponse.json({ ok: true });
